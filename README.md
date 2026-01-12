@@ -25,19 +25,19 @@ It implements the **Raft Consensus Algorithm** to guarantee strong consistency (
 
 ApexKV is composed of three distinct, tightly coupled layers:
 
-### 1. The Consensus Layer (Raft Implementation)
+### 1. The Consensus Layer - Raft Implementation (In Orange)
 The core brain of the system. It ensures that all nodes in the cluster agree on the state of the data, even in the event of failures.
 * **Leader Election:** Nodes use randomized election timeouts (150-300ms) to detect leader failures.
 * **Log Replication:** The Leader appends client commands to its local log and broadcasts `AppendEntries` RPCs to followers.
 * **Safety:** Entries are only committed to the storage engine once a quorum (N/2 + 1) of nodes have acknowledged receipt.
 
-### 2. The Storage Layer (LSM Tree)
+### 2. The Storage Layer - LSM Tree (In Green)
 A persistent storage engine modeled after Bitcask and Log-Structured Merge Trees.
 * **In-Memory Index:** A generic Hash Map maintains pointers (offsets) to data on disk for O(1) read performance.
 * **Append-Only Log:** All writes are serialized and appended to the end of a binary file, ensuring sequential write performance and crash recovery.
 * **Binary Serialization:** Custom encoder/decoder handles variable-length keys and values with header metadata.
 
-### 3. The Networking Layer (Custom Protocol)
+### 3. The Networking Layer - Custom Protocol (In Blue)
 Instead of HTTP/JSON, ApexKV uses a custom binary protocol over raw TCP sockets for maximum throughput.
 * **Packet Structure:** `[Command (1B)] [KeyLen (4B)] [ValLen (4B)] [Key Payload] [Value Payload]`
 * **Connection Pooling:** The Raft internal transport maintains persistent TCP connections between peers to minimize handshake latency during heartbeats.
