@@ -21,6 +21,7 @@ It implements the **Raft Consensus Algorithm** to guarantee strong consistency (
 ---
 
 ## 🏗 System Architecture
+![RAG Architecture Diagram](architecture.png)
 
 ApexKV is composed of three distinct, tightly coupled layers:
 
