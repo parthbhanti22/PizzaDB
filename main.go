@@ -33,7 +33,7 @@ func main() {
 	raftPort, _ := strconv.Atoi(raftPortStr)
 	dbPort := fmt.Sprintf(":%d", raftPort+1000)
 
-	dbName := "apex_" + raftPortStr + ".db"
+	dbName := "pizza_" + raftPortStr + ".db"
 	db, _ := NewDB(dbName)
 	defer db.Close()
 	
@@ -52,6 +52,6 @@ func main() {
 	}()
 	
 	// Blocks main
-	fmt.Printf("🔥 ApexDB Listening for Clients on %s\n", dbPort)
+	fmt.Printf("🔥 PizzaDB Listening for Clients on %s\n", dbPort)
 	server.Start(dbPort)
 }

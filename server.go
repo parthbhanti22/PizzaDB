@@ -27,7 +27,7 @@ func (s *Server) Start(port string) {
 	}
 	defer ln.Close()
 
-	fmt.Printf("🚀 Apex Server Listening on %s\n",port)
+	fmt.Printf("🚀 Pizza Server Listening on %s\n",port)
 
 	for {
 		//accept new connections (Blocking call)

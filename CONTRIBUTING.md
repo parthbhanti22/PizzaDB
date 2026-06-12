@@ -1,6 +1,6 @@
-# Contributing to ApexKV
+# Contributing to PizzaDB
 
-First off, thank you for considering contributing to ApexKV.
+First off, thank you for considering contributing to PizzaDB.
 
 This project is a high-performance distributed system. We prioritize **correctness** and **safety** (CP) over features. As such, the bar for code quality is high.
 

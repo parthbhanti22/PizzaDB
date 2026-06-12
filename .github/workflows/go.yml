@@ -1,4 +1,4 @@
-name: ApexKV CI
+name: PizzaDB CI
 
 on:
   push:

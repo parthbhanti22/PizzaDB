@@ -1,13 +1,13 @@
-# ApexKV
+# PizzaDB
 
-[![ApexKV CI](https://github.com/parthbhanti22/ApexKV/actions/workflows/go.yml/badge.svg)](https://github.com/parthbhanti22/ApexKV/actions/workflows/go.yml)
+[![PizzaDB CI](https://github.com/parthbhanti22/PizzaDB/actions/workflows/go.yml/badge.svg)](https://github.com/parthbhanti22/PizzaDB/actions/workflows/go.yml)
 ![Go Version](https://img.shields.io/badge/go-1.22+-00ADD8?style=flat&logo=go)
 ![Architecture](https://img.shields.io/badge/architecture-distributed-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-**ApexKV** is a distributed, fault-tolerant key-value storage engine built from scratch in Go.
+**PizzaDB** is a distributed, fault-tolerant key-value storage engine built from scratch in Go.
 
-It implements the **Raft Consensus Algorithm** to guarantee strong consistency (CP) across a cluster of nodes. Unlike standard educational projects, ApexKV features a custom binary TCP wire protocol, a persistent Log-Structured Merge (LSM) tree storage engine, and a chaos-engineering suite for validating resilience against network partitions and node crashes.
+It implements the **Raft Consensus Algorithm** to guarantee strong consistency (CP) across a cluster of nodes. Unlike standard educational projects, PizzaDB features a custom binary TCP wire protocol, a persistent Log-Structured Merge (LSM) tree storage engine, and a chaos-engineering suite for validating resilience against network partitions and node crashes.
 
 ---
 
@@ -23,7 +23,7 @@ It implements the **Raft Consensus Algorithm** to guarantee strong consistency (
 ## 🏗 System Architecture
 ![RAG Architecture Diagram](architecture.png)
 
-ApexKV is composed of three distinct, tightly coupled layers:
+PizzaDB is composed of three distinct, tightly coupled layers:
 
 ### 1. The Consensus Layer - Raft Implementation (In Orange)
 The core brain of the system. It ensures that all nodes in the cluster agree on the state of the data, even in the event of failures.
@@ -38,7 +38,7 @@ A persistent storage engine modeled after Bitcask and Log-Structured Merge Trees
 * **Binary Serialization:** Custom encoder/decoder handles variable-length keys and values with header metadata.
 
 ### 3. The Networking Layer - Custom Protocol (In Blue)
-Instead of HTTP/JSON, ApexKV uses a custom binary protocol over raw TCP sockets for maximum throughput.
+Instead of HTTP/JSON, PizzaDB uses a custom binary protocol over raw TCP sockets for maximum throughput.
 * **Packet Structure:** `[Command (1B)] [KeyLen (4B)] [ValLen (4B)] [Key Payload] [Value Payload]`
 * **Connection Pooling:** The Raft internal transport maintains persistent TCP connections between peers to minimize handshake latency during heartbeats.
 
@@ -52,8 +52,8 @@ Instead of HTTP/JSON, ApexKV uses a custom binary protocol over raw TCP sockets 
 
 ### Installation
 ```bash
-git clone [https://github.com/parthbhanti22/apex.git](https://github.com/parthbhanti22/apex.git)
-cd apex
+git clone [https://github.com/parthbhanti22/PizzaDB.git](https://github.com/parthbhanti22/PizzaDB.git)
+cd PizzaDB
 go mod tidy
 ```
 
