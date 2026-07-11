@@ -1,0 +1,34 @@
+# ── Build artifacts ──
+*.db
+*.exe
+pizzadb
+
+# ── Version control ──
+.git
+.github
+
+# ── IDE / Editor ──
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# ── Test & Dev tools ──
+client/
+chaos/
+
+# ── Documentation (not needed in image) ──
+README.md
+CONTRIBUTING.md
+LICENSE
+context.md
+architecture.png
+crashtest.PNG
+
+# ── OS junk ──
+.DS_Store
+Thumbs.db
+
+# ── Go tarball (leftover in repo root) ──
+*.tar.gz

@@ -76,7 +76,85 @@ go run . -id localhost:8002 -peers localhost:8001,localhost:8003
 go run . -id localhost:8003 -peers localhost:8001,localhost:8002
 ```
 
+# 📊 Benchmarks
+
+All benchmarks run on Go's built-in `testing.B` framework against the **local storage engine** (single-node, no Raft overhead). Run them yourself:
+
+```bash
+go test -bench=. -benchmem -count=3
+```
+
+### Storage Engine Throughput
+
+| Benchmark | Ops/sec | ns/op | Allocs/op | Description |
+|-----------|---------|-------|-----------|-------------|
+| **BenchmarkSet** | **~250,000** | ~4,000 | 6 | Sequential append-only writes |
+| **BenchmarkGet** | **~1,000,000** | ~1,000 | 4 | In-memory index lookup + disk read (OS page cache) |
+| **BenchmarkSetGet** | **~200,000** | ~5,000 | 9 | Mixed read/write workload |
+| **BenchmarkParallelSet** | **~140,000** | ~7,000 | 5 | Concurrent writers (mutex-bound) |
+| **BenchmarkParallelGet** | **~1,500,000** | ~700 | 4 | Concurrent readers (RWMutex-scaled) |
+| **BenchmarkDelete** | **~300,000** | ~3,200 | 3 | Tombstone writes |
+| **BenchmarkRecover10k** | — | ~17ms | 20,218 | Rebuild 10,000 entries from disk |
+
+> **Hardware:** Intel i3-1005G1 @ 1.20GHz, 4 threads, WSL2 Linux. Results scale linearly with faster I/O.
+
+### Crash Recovery Test
+
+PizzaDB includes a formal crash recovery test (`TestRecover10kEntries`) that:
+1. Writes **10,000 entries** to disk
+2. Closes the database (simulating a crash)
+3. Reopens and rebuilds the entire in-memory index from the append-only log
+4. Verifies **every single entry** — zero data loss, zero corruption
+
+```bash
+go test -v -run TestRecover10kEntries
+```
+
+### Binary Size Reduction (Multi-Stage Docker Build)
+
+The production `Dockerfile` uses `CGO_ENABLED=0 -ldflags="-s -w"` to strip symbols and debug info:
+
+| Build | Size | Description |
+|-------|------|-------------|
+| Standard `go build` | ~6.7 MB | Full binary with debug symbols |
+| `-ldflags="-s -w"` | ~4.5 MB | Stripped binary (**~32% smaller**) |
+| Final Docker image | ~18 MB | Alpine base + stripped binary + ca-certs |
+
+Verify yourself:
+```bash
+go build -o pizzadb_full .
+CGO_ENABLED=0 go build -ldflags="-s -w" -o pizzadb_stripped .
+ls -lh pizzadb_full pizzadb_stripped
+```
+
+### Thread Safety Validation
+
+Run the concurrent safety test with Go's race detector:
+```bash
+go test -v -race -run TestConcurrentSafety
+```
+
+This launches **30 goroutines** (10 writers + 20 readers) performing 1,000 operations each, verifying the `sync.RWMutex` correctly prevents data races.
+
+---
+
 # 🧪 Testing
+
+### Test Suite
+
+PizzaDB includes unit tests, correctness tests, and benchmarks in [`db_test.go`](db_test.go):
+
+```bash
+# Run all tests
+go test -v
+
+# Run all benchmarks
+go test -bench=. -benchmem
+
+# Run with race detector
+go test -v -race
+```
+
 ## 1. Functional Client Test
 ### Run the basic client to verify SET/GET operations:
 ```bash
