@@ -7,6 +7,10 @@ import (
 	"sync"
 )
 
+// tombstoneValue is the sentinel written to disk when a key is deleted.
+// On recovery and Get, entries with this value are treated as non-existent.
+const tombstoneValue = "__PIZZADB_TOMBSTONE__"
+
 //DB struct is thr database instance
 type DB struct {
 	file *os.File
@@ -70,7 +74,8 @@ func(db *DB) Set(key, value string) error {
 	
 }
 
-// Get retrieves a value from the log
+// Get retrieves a value from the log.
+// Returns an error if the key does not exist or has been tombstoned (deleted).
 func (db *DB) Get(key string) (string, error) {
 	db.mu.RLock()         // Read Lock (allows multiple readers, blocks writers)
 	defer db.mu.RUnlock()
@@ -90,7 +95,21 @@ func (db *DB) Get(key string) (string, error) {
 
 	// 3. Decode the raw bytes
 	decoded := Decode(data)
+
+	// 4. Check for tombstone — treat as deleted
+	if decoded.Value == tombstoneValue {
+		return "", fmt.Errorf("key not found: %s", key)
+	}
+
 	return decoded.Value, nil
+}
+
+// Delete removes a key by writing a tombstone marker.
+// This is the standard Bitcask approach: the old value remains on disk
+// but the in-memory index now points to the tombstone entry, causing
+// subsequent Gets to return "key not found".
+func (db *DB) Delete(key string) error {
+	return db.Set(key, tombstoneValue)
 }
 
 // recover reads the entire file and populates the keyDir
@@ -131,13 +150,19 @@ func (db *DB) recover() error {
 			return fmt.Errorf("corrupted file at offset %d", offset)
 		}
 
-		// 5. Extract the Key (we need it for the map)
+		// 5. Extract the Key and Value (we need them for the map)
 		key := string(dataBuf[:keyLen])
+		value := string(dataBuf[keyLen:])
 
-		// 6. Update the In-Memory Map
-		db.keyDir[key] = LogEntry{
-			Offset:    offset,
-			TotalSize: int64(totalSize),
+		// 6. Update the In-Memory Map (skip tombstoned entries)
+		if value == tombstoneValue {
+			// Key was deleted — remove from index so it stays dead
+			delete(db.keyDir, key)
+		} else {
+			db.keyDir[key] = LogEntry{
+				Offset:    offset,
+				TotalSize: int64(totalSize),
+			}
 		}
 
 		// 7. Move offset forward

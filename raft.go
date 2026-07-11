@@ -191,11 +191,13 @@ func (rn *RaftNode) getPeerClient(peerID string) (*rpc.Client, error) {
 		return client, nil
 	}
 
-	// Dial if we don't have a connection
-	newClient, err := rpc.Dial("tcp", peerID)
+	// Dial if we don't have a connection.
+	// Use DialTimeout to prevent hanging on dropped packets (e.g., OCI firewall)
+	conn, err := net.DialTimeout("tcp", peerID, 1*time.Second)
 	if err != nil {
 		return nil, err
 	}
+	newClient := rpc.NewClient(conn)
 
 	rn.mu.Lock()
 	rn.peerClients[peerID] = newClient
@@ -279,9 +281,18 @@ func (rn *RaftNode) runCandidate() {
 				return // Peer is probably down
 			}
 
-			// Make the RPC call
-			err = client.Call("RaftNode.RequestVote", &args, &reply)
-			if err == nil {
+			// Use client.Go for asynchronous RPC with timeout
+			call := client.Go("RaftNode.RequestVote", &args, &reply, nil)
+			select {
+			case <-call.Done:
+				if call.Error != nil {
+					client.Close()
+					rn.mu.Lock()
+					rn.peerClients[peer] = nil
+					rn.mu.Unlock()
+					return
+				}
+
 				rn.mu.Lock()
 				defer rn.mu.Unlock()
 
@@ -299,6 +310,13 @@ func (rn *RaftNode) runCandidate() {
 					rn.currentTerm = reply.Term
 					rn.state = Follower
 				}
+
+			case <-time.After(1 * time.Second):
+				// Prevent goroutine leaks if node drops packets
+				client.Close()
+				rn.mu.Lock()
+				rn.peerClients[peer] = nil
+				rn.mu.Unlock()
 			}
 		}(peer)
 	}
@@ -333,8 +351,19 @@ func (rn *RaftNode) broadcastHeartbeat() {
 			client, err := rn.getPeerClient(peer)
 			if err != nil { return }
 
-			err = client.Call("RaftNode.AppendEntries", &args, &reply)
-			if err != nil {
+			// Use client.Go for asynchronous RPC with timeout
+			call := client.Go("RaftNode.AppendEntries", &args, &reply, nil)
+			select {
+			case <-call.Done:
+				if call.Error != nil {
+					client.Close() // Force close on error
+					rn.mu.Lock()
+					rn.peerClients[peer] = nil
+					rn.mu.Unlock()
+				}
+			case <-time.After(1 * time.Second):
+				// Timeout! Kill the client to prevent future goroutine leaks
+				client.Close()
 				rn.mu.Lock()
 				rn.peerClients[peer] = nil
 				rn.mu.Unlock()
